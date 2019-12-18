@@ -1,5 +1,5 @@
 import sys
-sys.path.append("D:/01. School stuff/Animation")
+sys.path.append("C:/Program Files/Autodesk/Maya2018/modules")
 
 import loadXMLUI
 import pymel.core as pm
@@ -7,7 +7,7 @@ import pymel.core.datatypes as dt
 reload(loadXMLUI)
 
 ## Define path to ui file
-pathToFile = "D:/01. School stuff/Animation/animationTransferUI.ui"
+pathToFile = "C:/Program Files/Autodesk/Maya2018/modules/animationTransferUI.ui"
 
 # load and s
 ui = loadXMLUI.loadUI(pathToFile)
@@ -60,13 +60,13 @@ def SetTranslation(nrOfFrames, source, target):
 
 def TransferAnimation(jointCount, frameCount, sourceList, targetList):
 	
-	
+	#for every joint in source- and target skeleton 
 	for jointIndex in range(jointCount):
 		
 		
 		""" SOURCE - Get bindpose and orientations """ 
 		sourceJointBindPose = sourceList[jointIndex].getRotation().asMatrix()
-		sourceJoindBindPoseInversed = sourceJointBindPose.inverse()
+		sourceJoindBindPoseInversed = sourceJointBindPose.inverse().asMatrix()
 		
 		sourceJointOrientation = sourceList[jointIndex].getOrientation().asMatrix()
 		sourceJointOrientationInversed = sourceJointOrientation.inverse().asMatrix()
@@ -77,12 +77,14 @@ def TransferAnimation(jointCount, frameCount, sourceList, targetList):
 		sourceParentList = sourceList[jointIndex].getAllParents()
 		parLenS = len(sourceParentList)
 		
+		# get all parents rot + orient 
 		if parLenS > 0:
 			for prnt in sourceParentList:
 				rot = prnt.getRotation().asMatrix()
 				ori = prnt.getOrientation().asMatrix()
 				sourceParentMatrix *= ori * rot
-				
+		
+		#if root joint, rot + orient = identity mat
 		elif jointIndex is jointCount - 1:
 			rot = dt.Matrix()
 			ori = dt.Matrix()
@@ -102,12 +104,14 @@ def TransferAnimation(jointCount, frameCount, sourceList, targetList):
 		targetParentList = targetList[jointIndex].getAllParents()
 		parLenT = len(targetParentList)
 		
+		# get all parents rot + orient 
 		if parLenT > 0:
 			for tPrnt in targetParentList:
 				rotT = tPrnt.getRotation().asMatrix()
 				oriT = tPrnt.getOrientation().asMatrix()
 				targetParentMatrix *= oriT * rotT
 				
+		#if root joint, rot + orient = identity mat
 		elif jointIndex is jointCount - 1:
 			rotT = dt.Matrix()
 			oriT = dt.Matrix()
@@ -115,12 +119,15 @@ def TransferAnimation(jointCount, frameCount, sourceList, targetList):
 			
 		targetParentMatrixInverse = targetParentMatrix.inverse().asMatrix()
 		
-			
-		for frame in range(frameCount):		
+		#for every frame in nrOf Frames for joint at joint index	
+		for frame in range(frameCount):	
+		
 			""" SOURCE - Calculate K """
 			
+			#if root joint 
 			if jointIndex is jointCount - 1:
 				sourceJointFinalRot = pm.keyframe(sourceList[jointIndex], time=(frame, frame), query=True, eval=True)[7:10]		
+			
 			else:
 				sourceJointFinalRot = pm.keyframe(sourceList[jointIndex], time=(frame, frame), query=True, eval=True)[6:9]
 			
@@ -243,14 +250,12 @@ def TransferAnimationButton():
 	
 
 	if nrOfSourceJoints == nrOfTargetJoints:
-		sys.stdout.write("Source skeleton has equal or less nr of bones than target. Transfering animation") 
+		sys.stdout.write("Source skeleton has equal nr of bones than target. Transfering animation") 
 		SourceJointListRev = SourceJointList[::-1]
 		TargetJointListRev = TargetJointList[::-1]
 			
 		nrOfFrames = pm.keyframe(sourceRootJoint, query=True, keyframeCount=True) / 10
-		print "Frames: " +str(nrOfFrames)
 		
-		test = 50
 		
 		TransferAnimation(nrOfSourceJoints, nrOfFrames, SourceJointListRev, TargetJointListRev)
 		SetTranslation(nrOfFrames, sourceRootJoint, targetRootJoint)
@@ -279,8 +284,4 @@ ui.TargetRootBox.returnPressed.connect(AddTargetRootJoint)
 # =================================================================#
 # =================================================================#
 # =================================================================#
-
-
-
-
 
